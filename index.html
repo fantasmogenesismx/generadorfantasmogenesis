@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de fantasmas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Esta aplicación convierte sonido en fantasmas que intentan recordar el mundo en el que vivían">
+  <meta name="author" content="@fantasm0genesis">
+  <link rel="stylesheet" href="styles-corregido.css?v=20241212210000">
+
+  <!-- Force CSS reload for hosting -->
+  <style>
+    /* Inline critical CSS to ensure UI works */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .audio-controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .audio-btn {
+      padding: 12px 24px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .audio-btn:hover {
+      background: #555;
+    }
+
+    .canvas-container {
+      position: relative;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    #glCanvas {
+      border: 2px solid #333;
+      border-radius: 8px;
+      max-width: 100%;
+    }
+
+    .controls-panel {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      gap: 10px;
+    }
+
+    .slider-row label {
+      min-width: 120px;
+      font-weight: bold;
+    }
+
+    .slider {
+      flex: 1;
+      height: 30px;
+    }
+
+    .effects-section {
+      margin: 20px 0;
+    }
+
+    .effects-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .midi-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .midi-modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .bottom-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .control-btn {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .control-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Canvas en fullscreen - posicionamiento completo */
+    body.fullscreen #glCanvas {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+    }
+  </style>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VE2MP9D9G9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-VE2MP9D9G9');
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <img src="fantasmo.png" alt="Fantasmo" class="ghost-logo">
+      <select class="language-select" id="languageSelect">
+        <option value="es">ESPAÑOL</option>
+        <option value="en">ENGLISH</option>
+      </select>
+    </header>
+
+    <!-- Title Section -->
+    <div class="title-section">
+      <h1 class="main-title" id="mainTitle">Generador de fantasmas V4</h1>
+      <p class="subtitle" id="subtitle">por @fantasm0genesis</p>
+      <p class="description" id="description">Este generador crea fantasmas que intentan recordar el mundo en el que
+        vivían, por eso reaccionan al sonido.<br>Déjalo a la suerte o configura los distintos parámetros para tener más
+        control.</p>
+      <p class="donate-text" id="donateText">Este generador es gratuito, pero puedes <a
+          href="https://ko-fi.com/fantamosgenesis" target="_blank" rel="noopener noreferrer">donar</a> si lo deseas</p>
+    </div>
+
+    <!-- Audio Controls -->
+    <div class="audio-controls">
+      <button class="audio-btn" id="loadAudioBtn">CARGAR AUDIO</button>
+      <button class="audio-btn" id="realMicrophoneBtn">USAR MICRÓFONO</button>
+      <button class="audio-btn" id="midiMapBtn">MAPEAR MIDI</button>
+      <button class="audio-btn" id="playBtn">PLAY (BARRA ESP.)</button>
+      <button class="audio-btn" id="screenshotBtn">TOMAR FOTO (C)</button>
+      <button class="audio-btn" id="recordBtn">GRABAR VISUAL (G)</button>
+      <button class="audio-btn" id="fullscreenBtn">PANTALLA COMPLETA (F)</button>
+
+      <button class="audio-btn" id="cameraBtn">ACTIVAR CÁMARA (V)</button>
+      <button class="audio-btn" id="loadImageBtn">CARGAR IMAGEN/GIF (I)</button>
+      <input type="file" id="audioFile" accept="audio/*" multiple style="display: none;">
+      <input type="file" id="imageFile" accept="image/*,image/gif,.gif" style="display: none;">
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Canvas Area -->
+      <div class="canvas-container">
+        <canvas id="glCanvas" width="800" height="600"></canvas>
+        <div class="canvas-overlay" id="canvasOverlay">
+          <div class="error-message" id="errorMessage" style="display: none;"></div>
+          <div class="song-indicator" id="songIndicator" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="controls-panel">
+        <div class="controls-header">
+          <span id="controlsTitle">Modifica tu fantasma manualmente o déjalo a la suerte</span>
+        </div>
+
+        <div class="shader-controls">
+          <select class="shader-select" id="shaderSelect">
+            <option value="0">Psicodelic Mandelbrot</option>
+            <option value="1">Túnel Hypnótico</option>
+            <option value="2">Kaleidoscopio Glitch</option>
+            <option value="3">Plasma Storm</option>
+            <option value="4">Fractal Void</option>
+            <option value="5">Neon Grid</option>
+            <option value="6">Spiral Galaxy</option>
+            <option value="7">Digital Matrix</option>
+            <option value="8">Warp Drive</option>
+            <option value="9">Holographic Interference</option>
+            <option value="10">Mandelbrot Dreams</option>
+            <option value="11">Hypnotic Tunnel Vision</option>
+            <option value="12">Glitch Kaleidoscope</option>
+            <option value="13">Electric Plasma</option>
+            <option value="14">Void Fractal</option>
+            <option value="15">Grid Neon</option>
+            <option value="16">Galaxy Spiral</option>
+            <option value="17">Matrix Digital</option>
+            <option value="18">Drive Warp</option>
+            <option value="19">Interference Holographic</option>
+            <option value="20">Plasma Electric</option>
+            <option value="21">Void Dimensional</option>
+            <option value="22">Grid Holographic</option>
+            <option value="23">Storm Plasma</option>
+            <option value="24">Dimensional Void</option>
+            <option value="25">Holographic Grid</option>
+            <option value="26">Cosmic Spiral</option>
+            <option value="27">Cyber Matrix</option>
+            <option value="28">Hyperdrive</option>
+            <option value="29">Glitch Interference</option>
+            <option value="30">Mandelbrot Chaos</option>
+            <option value="31">Tunnel Vision</option>
+            <option value="32">Kaleidoscope Storm</option>
+            <option value="33">Plasma Dimension</option>
+            <option value="34">Laser Show</option>
+            <option value="35">Neon Cyberpunk</option>
+            <option value="36">Galaxy Core</option>
+            <option value="37">Digital Rain</option>
+            <option value="38">Warp Speed</option>
+            <option value="39">Wave Interference</option>
+          </select>
+
+          <div class="random-buttons">
+            <button class="random-btn" id="randomStyleBtn">Estilo aleatorio (S)</button>
+            <button class="random-btn" id="randomModBtn">Modificación aleatoria (R)</button>
+          </div>
+        </div>
+
+        <!-- Two Column Layout: Modulators and Effects -->
+        <div class="controls-grid">
+          <!-- Modulators Column -->
+          <div class="modulators-column">
+            <div class="column-title">MODULADORES</div>
+            <div class="slider-row">
+              <label>MOD. 1</label>
+              <input type="range" class="slider" id="mod1" min="0" max="100" value="50">
+            </div>
+            <div class="slider-row">
+              <label>MOD. 2</label>
+              <input type="range" class="slider" id="mod2" min="0" max="100" value="50">
+            </div>
+            <div class="slider-row">
+              <label>MOD. 3</label>
+              <input type="range" class="slider" id="mod3" min="0" max="100" value="50">
+            </div>
+            <div class="slider-row">
+              <label>MOD. 4</label>
+              <input type="range" class="slider" id="mod4" min="0" max="100" value="50">
+            </div>
+            <div class="slider-row">
+              <label>MOD. 5</label>
+              <input type="range" class="slider" id="mod5" min="0" max="100" value="50">
+            </div>
+            <div class="slider-row">
+              <label>MOD. 6</label>
+              <input type="range" class="slider" id="mod6" min="0" max="100" value="50">
+            </div>
+            <div class="slider-row">
+              <label>COLOR</label>
+              <input type="range" class="slider" id="colorSlider" min="0" max="360" value="180">
+            </div>
+            <div class="slider-row">
+              <label>SATURACIÓN</label>
+              <input type="range" class="slider" id="saturationSlider" min="0" max="200" value="100">
+            </div>
+          </div>
+
+          <!-- Effects Column -->
+          <div class="effects-column">
+            <div class="column-title" id="effectsTitle">EFECTOS</div>
+            <div class="slider-row">
+              <label>FX.1 </label>
+              <input type="range" class="slider" id="fx1Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 2</label>
+              <input type="range" class="slider" id="fx2Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 3</label>
+              <input type="range" class="slider" id="fx3Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 4</label>
+              <input type="range" class="slider" id="fx4Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 5</label>
+              <input type="range" class="slider" id="fx5Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 6</label>
+              <input type="range" class="slider" id="fx6Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 7</label>
+              <input type="range" class="slider" id="fx7Slider" min="0" max="100" value="0">
+            </div>
+            <div class="slider-row">
+              <label>FX. 8</label>
+              <input type="range" class="slider" id="fx8Slider" min="0" max="100" value="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer Opacity Controls V4 -->
+      <div class="layer-opacity-section">
+        <h3 class="layer-opacity-title">VIDEO MIXER</h3>
+        <div class="layer-opacity-controls">
+          <div class="slider-row">
+            <label>SHADER</label>
+            <input type="range" class="slider" id="shaderOpacity" min="0" max="100" value="100">
+            <span class="slider-value" id="shaderOpacityValue">100%</span>
+          </div>
+          <div class="slider-row">
+            <label>CÁMARA</label>
+            <input type="range" class="slider" id="cameraOpacity" min="0" max="100" value="0">
+            <span class="slider-value" id="cameraOpacityValue">0%</span>
+          </div>
+          <div class="slider-row">
+            <label>IMAGEN/GIF</label>
+            <input type="range" class="slider" id="imageOpacity" min="0" max="100" value="0">
+            <span class="slider-value" id="imageOpacityValue">0%</span>
+          </div>
+          <div class="slider-row">
+            <label>COLOR GLOBAL</label>
+            <input type="range" class="slider" id="globalColorHue" min="0" max="360" value="180">
+            <span class="slider-value" id="globalColorHueValue">180°</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Effect Targeting Controls V4 -->
+      <div class="effect-targeting-section">
+        <h3 class="effect-targeting-title">PATCHEO DE EFECTOS</h3>
+        <div class="effect-targeting-controls">
+          <!-- FX1 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.1</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx1_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx1_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx1_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX2 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.2</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx2_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx2_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx2_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX3 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.3</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx3_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx3_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx3_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX4 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.4</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx4_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx4_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx4_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX5 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.5</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx5_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx5_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx5_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX6 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.6</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx6_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx6_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx6_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX7 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.7</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx7_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx7_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx7_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- FX8 Targeting -->
+          <div class="effect-target-row">
+            <label class="effect-label">FX.8</label>
+            <div class="target-checkboxes">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx8_shader" checked> SHADER
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx8_camera"> CÁMARA
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="fx8_image"> IMAGEN
+              </label>
+            </div>
+          </div>
+
+          <!-- Global Controls -->
+          <div class="effect-global-controls">
+            <button class="effect-control-btn" id="allEffectsToShader">TODOS → SHADER</button>
+            <button class="effect-control-btn" id="allEffectsToAll">TODOS → TODAS LAS CAPAS</button>
+            <button class="effect-control-btn" id="resetEffectTargeting">RESETEAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls - Removed, moved to top -->
+
+    <!-- MIDI Status -->
+    <div class="midi-status" id="midiStatus">
+      <span id="midiStatusText">MIDI: No detectado</span>
+    </div>
+
+    <!-- MIDI Mapping Modal -->
+    <div class="midi-modal" id="midiModal" style="display: none;">
+      <div class="midi-modal-content">
+        <div class="midi-modal-header">
+          <h3 id="midiModalTitle">Mapeo MIDI</h3>
+          <button class="midi-close-btn" id="midiCloseBtn">×</button>
+        </div>
+        <div class="midi-modal-body">
+          <p id="midiInstructions">Selecciona un control y mueve un fader/knob MIDI para mapearlo</p>
+          <div class="midi-mappings" id="midiMappings">
+            <!-- Mapping items will be generated by JavaScript -->
+          </div>
+          <div class="midi-status-modal">
+            <span id="midiLearningStatus">Esperando conexión MIDI...</span>
+          </div>
+        </div>
+        <div class="midi-modal-footer">
+          <button class="control-btn" id="clearAllMappingsBtn">Limpiar Todo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="visualizer-final.js?v=20241212210000"></script>
+  <script>
+    // HOSTING COMPATIBILITY LAYER
+    console.log('🔧 Iniciando capa de compatibilidad para hosting...');
+
+    // Force initialization after DOM is fully loaded
+    let initAttempts = 0;
+    const maxInitAttempts = 5;
+
+    function forceInitialization() {
+      initAttempts++;
+      console.log(`🚀 Intento de inicialización ${initAttempts}/${maxInitAttempts}`);
+
+      if (typeof GhostVisualizer === 'undefined') {
+        console.error('❌ GhostVisualizer no está definido');
+        if (initAttempts < maxInitAttempts) {
+          setTimeout(forceInitialization, 1000);
+        }
+        return;
+      }
+
+      try {
+        if (!window.ghostVisualizer) {
+          console.log('🔧 Creando instancia de GhostVisualizer...');
+          window.ghostVisualizer = new GhostVisualizer();
+          window.ghostVisualizer.init().then(() => {
+            console.log('✅ GhostVisualizer inicializado exitosamente');
+
+            // Force effects functionality
+            forceEffectsFunctionality();
+
+            // Force MIDI functionality
+            forceMIDIFunctionality();
+
+          }).catch(error => {
+            console.error('❌ Error en inicialización:', error);
+            if (initAttempts < maxInitAttempts) {
+              setTimeout(forceInitialization, 2000);
+            }
+          });
+        } else {
+          console.log('✅ GhostVisualizer ya existe');
+          forceEffectsFunctionality();
+          forceMIDIFunctionality();
+        }
+      } catch (error) {
+        console.error('❌ Error crítico:', error);
+        if (initAttempts < maxInitAttempts) {
+          setTimeout(forceInitialization, 2000);
+        }
+      }
+    }
+
+    function forceEffectsFunctionality() {
+      console.log('🎭 Forzando funcionalidad de efectos...');
+
+      // Verificar que todos los sliders de efectos funcionen
+      const effectSliders = ['fx1Slider', 'fx2Slider', 'fx3Slider', 'fx4Slider',
+        'fx5Slider', 'fx6Slider', 'fx7Slider', 'fx8Slider'];
+
+      effectSliders.forEach(sliderId => {
+        const slider = document.getElementById(sliderId);
+        if (slider) {
+          // Remover listeners existentes y agregar nuevos
+          slider.replaceWith(slider.cloneNode(true));
+          const newSlider = document.getElementById(sliderId);
+
+          newSlider.addEventListener('input', function (e) {
+            const value = parseFloat(e.target.value);
+            const effectKey = sliderId.replace('Slider', '');
+
+            console.log(`✨ ${effectKey.toUpperCase()}: ${value}%`);
+
+            if (window.ghostVisualizer && window.ghostVisualizer.effects) {
+              window.ghostVisualizer.effects[effectKey] = value;
+              console.log(`🎭 Efecto ${effectKey} actualizado a ${value}`);
+            }
+          });
+
+          console.log(`✅ Slider ${sliderId} configurado`);
+        } else {
+          console.error(`❌ Slider ${sliderId} no encontrado`);
+        }
+      });
+    }
+
+    function forceMIDIFunctionality() {
+      console.log('🎹 Forzando funcionalidad MIDI...');
+
+      const midiBtn = document.getElementById('midiMapBtn');
+      if (midiBtn) {
+        // Remover listeners existentes
+        midiBtn.replaceWith(midiBtn.cloneNode(true));
+        const newMidiBtn = document.getElementById('midiMapBtn');
+
+        newMidiBtn.addEventListener('click', function () {
+          console.log('🎹 MIDI button clicked - Forzando modal...');
+          forceShowMIDIModal();
+        });
+
+        console.log('✅ Botón MIDI configurado');
+      }
+    }
+
+    function forceShowMIDIModal() {
+      console.log('🎹 Delegando modal MIDI al visualizer...');
+      if (window.ghostVisualizer) {
+        window.ghostVisualizer.showMIDIModal();
+      } else {
+        console.log('⚠️ GhostVisualizer no disponible, reintentando...');
+        setTimeout(forceShowMIDIModal, 500);
+      }
+    }
+
+    function forceShowMIDIModalOLD() {
+      console.log('🎹 Función antigua - NO USAR');
+
+      let modal = document.getElementById('midiModal');
+
+      if (!modal) {
+        console.log('🔧 Creando modal MIDI desde cero...');
+
+        const modalHTML = `
+                    <div class="midi-modal" id="midiModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
+                        <div class="midi-modal-content" style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; max-height: 80%; overflow-y: auto;">
+                            <div class="midi-modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 style="margin: 0;">Mapeo MIDI</h3>
+                                <button id="midiCloseBtn" style="background: #ff4444; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 18px;">×</button>
+                            </div>
+                            <div class="midi-modal-body">
+                                <p style="margin-bottom: 20px;">Selecciona un control y mueve un fader/knob MIDI para mapearlo</p>
+                                <div id="midiMappings" style="margin: 20px 0;">
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">MOD. 1 - <button onclick="startMIDILearning('mod1')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">MOD. 2 - <button onclick="startMIDILearning('mod2')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">MOD. 3 - <button onclick="startMIDILearning('mod3')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">MOD. 4 - <button onclick="startMIDILearning('mod4')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">MOD. 5 - <button onclick="startMIDILearning('mod5')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">MOD. 6 - <button onclick="startMIDILearning('mod6')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">COLOR - <button onclick="startMIDILearning('colorSlider')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">SATURACIÓN - <button onclick="startMIDILearning('saturationSlider')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; background: #e8f4f8;"><strong>VIDEO MIXER:</strong></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">SHADER OPACITY - <button onclick="startMIDILearning('shaderOpacity')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">CAMERA OPACITY - <button onclick="startMIDILearning('cameraOpacity')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">IMAGE OPACITY - <button onclick="startMIDILearning('imageOpacity')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">COLOR GLOBAL - <button onclick="startMIDILearning('globalColorHue')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; background: #e8f4f8;"><strong>EFECTOS:</strong></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">GLITCH - <button onclick="startMIDILearning('fx1Slider')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                    <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px;">ZOOM - <button onclick="startMIDILearning('fx2Slider')" style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Mapear</button></div>
+                                </div>
+                                <div style="margin: 20px 0; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                                    <span>Estado: <span id="midiLearningStatus">Listo para mapear</span></span>
+                                </div>
+                            </div>
+                            <div class="midi-modal-footer" style="text-align: center; margin-top: 20px;">
+                                <button onclick="clearAllMIDIMappings()" style="padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">Limpiar Todo</button>
+                                <button onclick="closeMIDIModal()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer;">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        modal = document.getElementById('midiModal');
+
+        // Agregar event listener para cerrar
+        document.getElementById('midiCloseBtn').addEventListener('click', closeMIDIModal);
+
+        console.log('✅ Modal MIDI creado exitosamente');
+      } else {
+        modal.style.display = 'flex';
+        console.log('✅ Modal MIDI mostrado');
+      }
+    }
+
+    // Global MIDI functions for hosting compatibility
+    window.startMIDILearning = function (controlId) {
+      console.log('🎯 Iniciando aprendizaje MIDI para:', controlId);
+      if (window.ghostVisualizer) {
+        window.ghostVisualizer.startLearningMIDI(controlId, controlId);
+      }
+    };
+
+    window.clearAllMIDIMappings = function () {
+      console.log('🗑️ Limpiando todos los mapeos MIDI');
+      if (window.ghostVisualizer) {
+        window.ghostVisualizer.clearAllMIDIMappings();
+      }
+    };
+
+    window.closeMIDIModal = function () {
+      console.log('❌ Cerrando modal MIDI');
+      if (window.ghostVisualizer) {
+        window.ghostVisualizer.hideMIDIModal();
+      }
+    };
+
+    // Verificar si todos los elementos existen
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('📄 DOM cargado completamente');
+
+      // Verificar elementos críticos
+      const criticalElements = [
+        'glCanvas', 'loadAudioBtn', 'realMicrophoneBtn', 'midiMapBtn',
+        'mod1', 'mod2', 'mod3', 'mod4', 'mod5', 'mod6', 'colorSlider', 'saturationSlider',
+        'fx1Slider', 'fx2Slider', 'fx3Slider', 'fx4Slider',
+        'fx5Slider', 'fx6Slider', 'fx7Slider', 'fx8Slider'
+      ];
+
+      let allElementsFound = true;
+      criticalElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) {
+          console.error(`❌ Elemento crítico faltante: ${id}`);
+          allElementsFound = false;
+        } else {
+          console.log(`✅ Elemento encontrado: ${id}`);
+        }
+      });
+
+      if (allElementsFound) {
+        console.log('✅ Todos los elementos críticos encontrados');
+        // Esperar un poco antes de forzar la inicialización
+        setTimeout(forceInitialization, 500);
+      } else {
+        console.error('❌ Faltan elementos críticos, reintentando...');
+        setTimeout(forceInitialization, 2000);
+      }
+    });
+  </script>
+</body>
+
+</html>

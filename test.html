@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test V4 - Generador de fantasmas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        #status { color: #0f0; margin: 10px 0; }
+        #canvas-container { text-align: center; margin: 20px 0; }
+        #glCanvas { border: 2px solid #333; max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Generador de Fantasmas V4</h1>
+    
+    <div class="test-section">
+        <h3>📊 Estado del Sistema</h3>
+        <div id="status">Iniciando...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🎭 Controles de Opacidad</h3>
+        <label>Shader: <input type="range" id="shaderOpacity" min="0" max="100" value="100" onchange="updateOpacity('shader', this.value)"> <span id="shaderValue">100%</span></label><br>
+        <label>Cámara: <input type="range" id="cameraOpacity" min="0" max="100" value="0" onchange="updateOpacity('camera', this.value)"> <span id="cameraValue">0%</span></label><br>
+        <label>Imagen: <input type="range" id="imageOpacity" min="0" max="100" value="0" onchange="updateOpacity('image', this.value)"> <span id="imageValue">0%</span></label>
+    </div>
+    
+    <div class="test-section">
+        <h3>📹 Control de Cámara</h3>
+        <button onclick="toggleCamera()">Activar/Desactivar Cámara</button>
+        <span id="cameraStatus">Inactiva</span>
+    </div>
+    
+    <div class="test-section">
+        <h3>🖼️ Control de Imagen/GIF</h3>
+        <input type="file" id="imageFile" accept="image/*" onchange="loadImage(this.files[0])">
+        <button onclick="document.getElementById('imageFile').click()">Cargar Imagen/GIF</button>
+        <span id="imageStatus">Sin imagen</span>
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="glCanvas" width="400" height="300"></canvas>
+    </div>
+    
+    <script>
+        let visualizer = null;
+        
+        // Clase simplificada para test
+        class TestVisualizer {
+            constructor() {
+                this.canvas = document.getElementById('glCanvas');
+                this.layerOpacities = { shader: 1.0, camera: 0.0, image: 0.0 };
+                this.isCameraActive = false;
+                this.isImageLoaded = false;
+                this.status = document.getElementById('status');
+                this.init();
+            }
+            
+            init() {
+                this.status.textContent = "✅ Sistema V4 inicializado - Test básico";
+                console.log("🚀 Test Visualizer V4 iniciado");
+            }
+            
+            updateOpacity(layer, value) {
+                this.layerOpacities[layer] = value / 100;
+                console.log(`🎭 ${layer} opacity: ${this.layerOpacities[layer]}`);
+            }
+            
+            async toggleCamera() {
+                try {
+                    if (!this.isCameraActive) {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        this.isCameraActive = true;
+                        document.getElementById('cameraStatus').textContent = "✅ Activa";
+                        console.log("📹 Cámara activada");
+                    } else {
+                        this.isCameraActive = false;
+                        document.getElementById('cameraStatus').textContent = "❌ Inactiva";
+                        console.log("📹 Cámara desactivada");
+                    }
+                } catch (error) {
+                    console.error("❌ Error con cámara:", error);
+                    document.getElementById('cameraStatus').textContent = "❌ Error";
+                }
+            }
+            
+            loadImage(file) {
+                if (file) {
+                    console.log("🖼️ Cargando:", file.name);
+                    const isGif = file.type === 'image/gif';
+                    this.isImageLoaded = true;
+                    document.getElementById('imageStatus').textContent = `✅ ${isGif ? 'GIF' : 'Imagen'} cargada`;
+                }
+            }
+        }
+        
+        // Funciones globales para los controles
+        function updateOpacity(layer, value) {
+            if (visualizer) {
+                visualizer.updateOpacity(layer, value);
+                document.getElementById(layer + 'Value').textContent = value + '%';
+            }
+        }
+        
+        function toggleCamera() {
+            if (visualizer) {
+                visualizer.toggleCamera();
+            }
+        }
+        
+        function loadImage(file) {
+            if (visualizer && file) {
+                visualizer.loadImage(file);
+            }
+        }
+        
+        // Inicializar al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            visualizer = new TestVisualizer();
+        });
+    </script>
+</body>
+</html> 
