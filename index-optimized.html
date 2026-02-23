@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de fantasmas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Esta aplicación convierte sonido en fantasmas que intentan recordar el mundo en el que vivían">
+  <meta name="author" content="@fantasm0genesis">
+  <link rel="stylesheet" href="styles-optimized.css">
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VE2MP9D9G9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-VE2MP9D9G9');
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="site-title">fantasmogenesis</h1>
+      <div class="header-right">
+        <select class="language-select" id="languageSelect">
+          <option value="es">es</option>
+          <option value="en">en</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Title Section -->
+    <div class="title-section">
+      <p class="description" id="description">
+        visuales audioreactivos generativos.<br>
+        carga audio o usa el micrófono.
+      </p>
+      <p class="donate-text" id="donateText">
+        <a href="https://ko-fi.com/fantamosgenesis" target="_blank" rel="noopener noreferrer">donar</a> · 
+        <a href="https://fantasmogenesis.art" target="_blank" rel="noopener noreferrer">fantasmogenesis.art</a>
+      </p>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-container">
+      <canvas id="glCanvas" width="800" height="600"></canvas>
+      <div class="canvas-overlay" id="canvasOverlay">
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+        <div class="song-indicator" id="songIndicator" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <button class="btn" id="loadAudioBtn">audio</button>
+      <button class="btn" id="realMicrophoneBtn">mic</button>
+      <button class="btn" id="playBtn">play</button>
+      <button class="btn" id="midiMapBtn">midi</button>
+      <button class="btn" id="cameraBtn">cam</button>
+      <button class="btn" id="loadImageBtn">img</button>
+      <button class="btn" id="screenshotBtn">foto</button>
+      <button class="btn" id="recordBtn">rec</button>
+      <button class="btn" id="fullscreenBtn">full</button>
+      <input type="file" id="audioFile" accept="audio/*" multiple style="display: none;">
+      <input type="file" id="imageFile" accept="image/*,image/gif,.gif" style="display: none;">
+    </div>
+
+    <!-- Panel: Shader & Randomization -->
+    <div class="collapsible-panel expanded" id="shaderPanel">
+      <div class="panel-header" onclick="togglePanel('shaderPanel')">
+        <span class="panel-title">shader</span>
+        <span class="panel-toggle">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="panel-inner">
+          <div class="shader-controls">
+            <select class="shader-select" id="shaderSelect">
+              <optgroup label="🔄 FEEDBACK LOOPS">
+                <option value="0">Recursive Feedback</option>
+                <option value="1">Polar Loop</option>
+                <option value="2">Fractal Accumulator</option>
+                <option value="3">Warp Feedback</option>
+                <option value="4">Energy Cascade</option>
+              </optgroup>
+              <optgroup label="� WARPS ESPACIALES">
+                <option value="5">Space-Time Warp</option>
+                <option value="6">Infinite Tunnel</option>
+                <option value="7">Liquid Distortion</option>
+                <option value="8">Kaleidoscope Fold</option>
+                <option value="9">Spiral Vortex</option>
+              </optgroup>
+              <optgroup label="💎 FRACTALES COMPLEJOS">
+                <option value="10">Mandelbrot Animated</option>
+                <option value="11">Julia Set</option>
+                <option value="12">Sierpinski Triangle</option>
+                <option value="13">Dragon Curve</option>
+                <option value="14">Koch Snowflake</option>
+              </optgroup>
+              <optgroup label="📺 GLITCH TEMPORAL">
+                <option value="15">RGB Split Glitch</option>
+                <option value="16">Datamosh Corruption</option>
+                <option value="17">Chromatic Aberration</option>
+                <option value="18">Pixel Dither</option>
+                <option value="19">VHS Tracking</option>
+              </optgroup>
+              <optgroup label="🎯 RAYTRACING 3D">
+                <option value="20">Raymarched Sphere</option>
+                <option value="21">SDF Orb Glow</option>
+                <option value="22">Distance Field</option>
+                <option value="23">Isosurface Waves</option>
+                <option value="24">Volumetric Clouds</option>
+              </optgroup>
+              <optgroup label="🧬 GENERATIVOS">
+                <option value="25">Algorithmic Pattern</option>
+                <option value="26">Voronoi Cells</option>
+                <option value="27">Flow Field</option>
+                <option value="28">Perlin Noise</option>
+                <option value="29">Reaction Diffusion</option>
+              </optgroup>
+              <optgroup label="⚛️ QUANTUM EFFECTS">
+                <option value="30">Wave Interference</option>
+                <option value="31">Particle Field</option>
+                <option value="32">Atomic Orbitals</option>
+                <option value="33">Quantum Entanglement</option>
+                <option value="34">Tunneling Effect</option>
+              </optgroup>
+              <optgroup label="🌐 HYPERDIMENSIONAL">
+                <option value="35">4D Projection</option>
+                <option value="36">Tesseract</option>
+                <option value="37">Klein Bottle</option>
+                <option value="38">Möbius Strip</option>
+                <option value="39">Torus Knot</option>
+              </optgroup>
+            </select>
+            <div class="random-buttons">
+              <button class="btn" id="randomStyleBtn">random (s)</button>
+              <button class="btn" id="randomModBtn">shuffle (r)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Controls (Modulators & Effects) -->
+    <div class="collapsible-panel expanded" id="controlsPanel">
+      <div class="panel-header" onclick="togglePanel('controlsPanel')">
+        <span class="panel-title">controles</span>
+        <span class="panel-toggle">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="panel-inner">
+          <div class="controls-grid">
+            <!-- Modulators Column -->
+            <div class="control-column">
+              <div class="column-title">moduladores</div>
+              <div class="slider-row">
+                <label>mod. 1</label>
+                <input type="range" class="slider" id="mod1" min="0" max="100" value="50">
+              </div>
+              <div class="slider-row">
+                <label>mod. 2</label>
+                <input type="range" class="slider" id="mod2" min="0" max="100" value="50">
+              </div>
+              <div class="slider-row">
+                <label>mod. 3</label>
+                <input type="range" class="slider" id="mod3" min="0" max="100" value="50">
+              </div>
+              <div class="slider-row">
+                <label>mod. 4</label>
+                <input type="range" class="slider" id="mod4" min="0" max="100" value="50">
+              </div>
+              <div class="slider-row">
+                <label>mod. 5</label>
+                <input type="range" class="slider" id="mod5" min="0" max="100" value="50">
+              </div>
+              <div class="slider-row">
+                <label>mod. 6</label>
+                <input type="range" class="slider" id="mod6" min="0" max="100" value="50">
+              </div>
+              <div class="slider-row">
+                <label>color</label>
+                <input type="range" class="slider" id="colorSlider" min="0" max="360" value="180">
+              </div>
+              <div class="slider-row">
+                <label>saturación</label>
+                <input type="range" class="slider" id="saturationSlider" min="0" max="200" value="100">
+              </div>
+            </div>
+
+            <!-- Effects Column -->
+            <div class="control-column">
+              <div class="column-title">efectos</div>
+              <div class="slider-row">
+                <label>fx.1 glitch</label>
+                <input type="range" class="slider" id="fx1Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.2 ruido</label>
+                <input type="range" class="slider" id="fx2Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.3 ondas</label>
+                <input type="range" class="slider" id="fx3Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.4 espejo</label>
+                <input type="range" class="slider" id="fx4Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.5 cromática</label>
+                <input type="range" class="slider" id="fx5Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.6 pixelación</label>
+                <input type="range" class="slider" id="fx6Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.7 inversión</label>
+                <input type="range" class="slider" id="fx7Slider" min="0" max="100" value="0">
+              </div>
+              <div class="slider-row">
+                <label>fx.8 scanlines</label>
+                <input type="range" class="slider" id="fx8Slider" min="0" max="100" value="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Video Mixer -->
+    <div class="collapsible-panel" id="mixerPanel">
+      <div class="panel-header" onclick="togglePanel('mixerPanel')">
+        <span class="panel-title">mixer</span>
+        <span class="panel-toggle">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="panel-inner">
+          <div class="layer-opacity-controls">
+            <div class="slider-row">
+              <label>shader</label>
+              <input type="range" class="slider" id="shaderOpacity" min="0" max="100" value="100">
+              <span class="slider-value" id="shaderOpacityValue">100%</span>
+            </div>
+            <div class="slider-row">
+              <label>cámara</label>
+              <input type="range" class="slider" id="cameraOpacity" min="0" max="100" value="0">
+              <span class="slider-value" id="cameraOpacityValue">0%</span>
+            </div>
+            <div class="slider-row">
+              <label>imagen/gif</label>
+              <input type="range" class="slider" id="imageOpacity" min="0" max="100" value="0">
+              <span class="slider-value" id="imageOpacityValue">0%</span>
+            </div>
+            <div class="slider-row">
+              <label>color global</label>
+              <input type="range" class="slider" id="globalColorHue" min="0" max="360" value="180">
+              <span class="slider-value" id="globalColorHueValue">180°</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Effect Targeting -->
+    <div class="collapsible-panel" id="patchPanel">
+      <div class="panel-header" onclick="togglePanel('patchPanel')">
+        <span class="panel-title">routing</span>
+        <span class="panel-toggle">▼</span>
+      </div>
+      <div class="panel-content">
+        <div class="panel-inner">
+          <div class="effect-targeting-controls">
+            <!-- FX1-8 Targeting -->
+            <div class="effect-target-row">
+              <label class="effect-label">fx.1</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx1_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx1_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx1_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.2</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx2_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx2_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx2_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.3</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx3_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx3_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx3_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.4</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx4_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx4_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx4_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.5</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx5_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx5_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx5_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.6</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx6_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx6_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx6_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.7</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx7_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx7_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx7_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-target-row">
+              <label class="effect-label">fx.8</label>
+              <div class="target-checkboxes">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx8_shader" checked> shader
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx8_camera"> cámara
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="fx8_image"> imagen
+                </label>
+              </div>
+            </div>
+            <div class="effect-global-controls">
+              <button class="effect-control-btn" id="allEffectsToShader">all → shader</button>
+              <button class="effect-control-btn" id="allEffectsToAll">all → all</button>
+              <button class="effect-control-btn" id="resetEffectTargeting">reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDI Status -->
+    <div class="midi-status" id="midiStatus">
+      <span id="midiStatusText">midi off</span>
+    </div>
+
+    <!-- MIDI Modal -->
+    <div class="midi-modal" id="midiModal" style="display: none;">
+      <div class="midi-modal-content">
+        <div class="midi-modal-header">
+          <h3 id="midiModalTitle">midi mapping</h3>
+          <button class="midi-close-btn" id="midiCloseBtn">×</button>
+        </div>
+        <div class="midi-modal-body">
+          <p id="midiInstructions">select control + move midi fader/knob</p>
+          <div class="midi-mappings" id="midiMappings"></div>
+          <div class="midi-status-modal">
+            <span id="midiLearningStatus">waiting midi...</span>
+          </div>
+        </div>
+        <div class="midi-modal-footer">
+          <button class="btn" id="clearAllMappingsBtn">clear all</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="visualizer-final.js"></script>
+  <script>
+    // Panel toggle functionality
+    function togglePanel(panelId) {
+      const panel = document.getElementById(panelId);
+      if (panel) {
+        panel.classList.toggle('expanded');
+      }
+    }
+
+    // Initialize visualizer
+    let initAttempts = 0;
+    const maxInitAttempts = 3;
+
+    function initializeApp() {
+      initAttempts++;
+      console.log(`🚀 Intento de inicialización ${initAttempts}/${maxInitAttempts}`);
+
+      if (typeof GhostVisualizer === 'undefined') {
+        console.error('❌ GhostVisualizer no está definido');
+        if (initAttempts < maxInitAttempts) {
+          setTimeout(initializeApp, 1000);
+        }
+        return;
+      }
+
+      try {
+        if (!window.ghostVisualizer) {
+          console.log('🔧 Creando instancia de GhostVisualizer...');
+          window.ghostVisualizer = new GhostVisualizer();
+          console.log('✅ GhostVisualizer inicializado');
+        }
+      } catch (error) {
+        console.error('❌ Error crítico:', error);
+        if (initAttempts < maxInitAttempts) {
+          setTimeout(initializeApp, 2000);
+        }
+      }
+    }
+
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      
+      const key = e.key.toLowerCase();
+      const visualizer = window.ghostVisualizer;
+      
+      if (!visualizer) return;
+
+      switch(key) {
+        case ' ':
+          e.preventDefault();
+          visualizer.togglePlay?.();
+          break;
+        case 's':
+          visualizer.randomizeShader?.();
+          break;
+        case 'r':
+          visualizer.randomizeModulation?.();
+          break;
+        case 'c':
+          visualizer.takeScreenshot?.();
+          break;
+        case 'g':
+          visualizer.toggleRecording?.();
+          break;
+        case 'f':
+          visualizer.toggleFullscreen?.();
+          break;
+        case 'h':
+          // Toggle all panels
+          document.querySelectorAll('.collapsible-panel').forEach(panel => {
+            panel.classList.toggle('expanded');
+          });
+          break;
+      }
+    });
+  </script>
+</body>
+</html>
